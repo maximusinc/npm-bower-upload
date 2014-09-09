@@ -1,6 +1,6 @@
 {
   "name": "npm-bower-upload",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "dependencies": {
 		"xmldoc": "~0.1.0",
 		"q": "~1.0.0",
