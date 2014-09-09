@@ -4,7 +4,7 @@
 		xmldoc = require('xmldoc'),
 		Q = require('q'),
 		fs = require('fs'),
-		bowerJson = require('./bower.json'),
+		bowerJson = require('./../../bower.json'),
 		unjar = require('./unjar.js'),
 		deps = bowerJson && JSON.parse(JSON.stringify(bowerJson.dependencies)),
 		newDeps = {},
