@@ -1,0 +1,11 @@
+{
+  "name": "app",
+  "version": "0.0.0",
+  "dependencies": {},
+  "devDependencies": {
+    "xmldoc": "~0.1.0",
+    "q": "~1.0.0",
+    "unzip": "~0.1.11",
+    "fstream": "~1.0.2"
+  }
+}
