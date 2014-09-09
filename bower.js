@@ -6,6 +6,7 @@
 		fs = require('fs'),
 		bowerJson = require('./../../bower.json'),
 		unjar = require('./unjar.js'),
+		initialDeps = JSON.parse(JSON.stringify(bowerJson.dependencies)),
 		deps = bowerJson && JSON.parse(JSON.stringify(bowerJson.dependencies)),
 		newDeps = {},
 		metadata = {},
@@ -57,7 +58,6 @@
 			removeMetadaDir = function () {
 				return Q.Promise(function (resolve, reject) {
 					fs.rmdir('bower_components/maven-metadata',function (err) {
-						console.log('qqqqq');
 						if (err) reject(err);
 						resolve();
 					});
@@ -109,11 +109,11 @@
 				return Q.Promise(function (resolve, reject) {
 					bower.commands
 					.install([], {save: false, force: !!force})
-					.on('end', function () {
+					.on('end', function (installed) {
 						resolve();
 					})
 					.on('error', function () {
-						reject();
+						reject(new Error('Package no found!!'));
 					});
 				});
 			},
@@ -143,6 +143,13 @@
 				for (var alias in verAliases) {
 					newDeps[alias] = makeNewDependencyUrl(deps[alias],verAliases[alias]);
 				}
+			},
+			exitWithError = function (reason) {
+				if (reason) {
+					console.error(reason);
+					saveToBowerJsonDep(initialDeps);
+				}
+				return Q.reject();
 			};
 	// remove bower_components path
 	removeBowerPathSync();
@@ -155,11 +162,11 @@
 	saveToBowerJsonDep(metadata).then(function () {
 		// upload all metadata xml files
 		return bowerInstall(true);
-	})
+	}, exitWithError )
 	.then(function () {
 		// read last versions from .xml files
 		return readVesrsions();
-	})
+	}, exitWithError)
 	.then(function (verAliases) {
 		// replace ~last~ to real version
 		updateDependenciesVersions(verAliases);
@@ -169,19 +176,19 @@
 		}
 		// save
 		return saveToBowerJsonDep(newDeps);
-	})
+	}, exitWithError)
 	.then(function () {
 		removeBowerPathSync();
 		return bowerInstall();
-	})
+	}, exitWithError)
 	.then(function () {
 		return saveToBowerJsonDep(deps);
-	})
+	}, exitWithError)
 	.then(function (){
 		return unjar();
-	})
+	}, exitWithError)
 	.then(function () {
 		console.log("All Done!!");
-	});
+	}, exitWithError);
 
 })();
