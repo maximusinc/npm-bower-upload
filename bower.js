@@ -178,8 +178,10 @@
 		return saveToBowerJsonDep(deps);
 	})
 	.then(function (){
-		unjar();
-		console.log("All Done!!");
+		return unjar();
 	})
+	.then(function () {
+		console.log("All Done!!");
+	});
 
 })();
