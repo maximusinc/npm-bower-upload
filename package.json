@@ -1,12 +1,12 @@
 {
   "name": "npm-bower-upload",
-  "version": "0.0.4",
-  "dependencies": {},
-  "devDependencies": {
-    "xmldoc": "~0.1.0",
-    "q": "~1.0.0",
-    "unzip": "~0.1.11",
-    "fstream": "~1.0.2"
+  "version": "0.0.5",
+  "dependencies": {
+		"xmldoc": "~0.1.0",
+		"q": "~1.0.0",
+		"unzip": "~0.1.11",
+		"fstream": "~1.0.2"
   },
+  "devDependencies": {},
   "private": "true"
 }
