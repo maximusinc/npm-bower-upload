@@ -13,7 +13,13 @@ module.exports = function () {
 			var promises = [];
 			folders.forEach(function (folder) {
 				promises.push(Q.Promise(function (resolve, reject){
-					if (fs.lstatSync('bower_components/'+folder+'/index.jar').isFile()){
+					var hasJar;
+					try {
+						hasJar = fs.lstatSync('bower_components/'+folder+'/index.jar').isFile();
+					} catch(e) {
+						hasJar = false;
+					}
+					if (hasJar){
 						var readStream = fs.createReadStream('bower_components/' + folder + '/index.jar');
 						var writeStream = fstream.Writer('bower_components/' + folder);
 						writeStream.on('close', function () {
