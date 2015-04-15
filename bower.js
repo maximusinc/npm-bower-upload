@@ -1,4 +1,4 @@
-(function () {
+module.exports = function () {
 
 	var bower = require('bower'),
 		xmldoc = require('xmldoc'),
@@ -191,4 +191,4 @@
 		console.log("All Done!!");
 	}, exitWithError);
 
-})();
+};
