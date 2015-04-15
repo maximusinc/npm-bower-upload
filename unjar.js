@@ -6,7 +6,7 @@ module.exports = function () {
 	var fs = require('fs');
 	var Q = require('q');
 	var fstream = require('fstream');
-	var unzip = require('unzip');
+	var unzip = require('unzip2');
 
 	return Q.Promise(function (resolveMain, rejectMain) {
 		fs.readdir('bower_components', function (err, folders){

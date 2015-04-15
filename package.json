@@ -1,12 +1,12 @@
 {
   "name": "rx-bower-upload",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description" : "upload dependencies using bower",
   "main" : "bower.js",
   "dependencies": {
 		"xmldoc": "~0.1.0",
 		"q": "~1.0.0",
-		"unzip": "~0.1.11",
+		"unzip2": "~0.2.0",
 		"fstream": "~1.0.2"
   },
   "devDependencies": {}
