@@ -1,19 +1,19 @@
-module.exports = function () {
-
+module.exports = function (bowerPath) {
+	bowerPath = bowerPath || './bower.json';
 	var bower = require('bower'),
 		xmldoc = require('xmldoc'),
 		Q = require('q'),
 		fs = require('fs'),
 		getFileBwStat = function () {
 			try{
-				return fs.statSync('./../bower.json')
+				return fs.statSync(bowerPath);
 			}catch(e){
 				return false;
 			}
 		},
 		fileBwStats = getFileBwStat(),
 		hasBwJSON = fileBwStats && fileBwStats.isFile(),
-		bowerJson = hasBwJSON ? JSON.parse(fs.readFileSync('./../bower.json')) : {},
+		bowerJson = hasBwJSON ? JSON.parse(fs.readFileSync(bowerPath)) : {},
 		unjar = require('./unjar.js'),
 		initialDeps = hasBwJSON ? JSON.parse(JSON.stringify(bowerJson.dependencies)) : {},
 		deps = hasBwJSON ? JSON.parse(JSON.stringify(bowerJson.dependencies)) : {},
@@ -36,7 +36,7 @@ module.exports = function () {
 				bowerJson.dependencies = data;
 				return  Q.Promise(function (resolve, reject) {
 					if (fileBwStats && fileBwStats.isFile()) {
-						fs.writeFile('bower.json', JSON.stringify(bowerJson, null, 4), function(err) {
+						fs.writeFile(bowerPath, JSON.stringify(bowerJson, null, 4), function(err) {
 						    if(err) {
 						      reject(err);
 						    } else {
@@ -170,6 +170,7 @@ module.exports = function () {
 	// find metadata xml url by depency urls
 	findMetadataRequestDeps(deps);
 	console.info('Resolve versions from Metadata.xml:');
+	console.info( metadata );
 	for (var a in metadata) {
 		console.log(a+' - '+metadata[a]);
 	}
