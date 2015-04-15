@@ -4,14 +4,22 @@ module.exports = function () {
 		xmldoc = require('xmldoc'),
 		Q = require('q'),
 		fs = require('fs'),
-		bowerJson = require('./../../bower.json'),
+		getFileBwStat = function () {
+			try{
+				return fs.statSync('./../bower.json')
+			}catch(e){
+				return false;
+			}
+		},
+		fileBwStats = getFileBwStat(),
+		hasBwJSON = fileBwStats && fileBwStats.isFile(),
+		bowerJson = hasBwJSON ? JSON.parse(fs.readFileSync('./../bower.json')) : {},
 		unjar = require('./unjar.js'),
-		initialDeps = JSON.parse(JSON.stringify(bowerJson.dependencies)),
-		deps = bowerJson && JSON.parse(JSON.stringify(bowerJson.dependencies)),
+		initialDeps = hasBwJSON ? JSON.parse(JSON.stringify(bowerJson.dependencies)) : {},
+		deps = hasBwJSON ? JSON.parse(JSON.stringify(bowerJson.dependencies)) : {},
 		newDeps = {},
 		metadata = {},
 		lastVersions = {};
-
 
 		var findLastBuild = function (filePath) {
 				return Q.Promise(function (resolve, reject) {
@@ -27,13 +35,19 @@ module.exports = function () {
 			saveToBowerJsonDep = function (data) {
 				bowerJson.dependencies = data;
 				return  Q.Promise(function (resolve, reject) {
-					fs.writeFile('bower.json', JSON.stringify(bowerJson, null, 4), function(err) {
-					    if(err) {
-					      reject(err);
-					    } else {
-					      resolve();
-					    }
-					});
+					if (fileBwStats && fileBwStats.isFile()) {
+						fs.writeFile('bower.json', JSON.stringify(bowerJson, null, 4), function(err) {
+						    if(err) {
+						      reject(err);
+						    } else {
+						      resolve();
+						    }
+						});
+					} else {
+						setTimeout(function () {
+							resolve();
+						});
+					}
 				});
 			},
 			getMetadataXmlRoute = function (url) {
