@@ -1,27 +1,30 @@
-module.exports = function (bowerPath) {
+module.exports = function (bowerPath, callback) {
 	bowerPath = bowerPath || './bower.json';
-	var bower = require('bower'),
+	var TMP_INITIAL = '.tmp/bower_install/bower_initial.json',
+        CACHE_TMP = '.tmp/bower_install/',
+		grunt = require('grunt'),
+		bower = require('bower'),
 		xmldoc = require('xmldoc'),
+		unjar = require('./unjar.js'),
 		Q = require('q'),
 		fs = require('fs'),
-		getFileBwStat = function () {
-			try{
-				return fs.statSync(bowerPath);
-			}catch(e){
-				return false;
-			}
-		},
-		fileBwStats = getFileBwStat(),
-		hasBwJSON = fileBwStats && fileBwStats.isFile(),
-		bowerJson = hasBwJSON ? JSON.parse(fs.readFileSync(bowerPath)) : {},
-		unjar = require('./unjar.js'),
-		initialDeps = hasBwJSON ? JSON.parse(JSON.stringify(bowerJson.dependencies)) : {},
-		deps = hasBwJSON ? JSON.parse(JSON.stringify(bowerJson.dependencies)) : {},
+		hasBwJSON = grunt.file.exists(bowerPath),
+		bowerJson = hasBwJSON ? grunt.file.readJSON(bowerPath) : {},
+		initialDeps = hasBwJSON ? grunt.file.readJSON(bowerPath) : {},
+		deps = JSON.parse(JSON.stringify(bowerJson.dependencies)),
 		newDeps = {},
 		metadata = {},
 		lastVersions = {};
 
-		var findLastBuild = function (filePath) {
+		var cacheJson = function (key, data, raw) {
+                if (!key) return;
+                data = data || {};
+                grunt.file.write(CACHE_TMP+key+'.json', raw ? data : JSON.stringify(data) );
+            },
+            cacheRead = function (key){
+                return grunt.file.read(CACHE_TMP+key+'.json');
+            },
+            findLastBuild = function (filePath) {
 				return Q.Promise(function (resolve, reject) {
 					fs.readFile(filePath, function (err, data) {
 						if (err) reject(err);
@@ -32,20 +35,24 @@ module.exports = function (bowerPath) {
 					});
 				});
 			},
-			saveToBowerJsonDep = function (data) {
-				bowerJson.dependencies = data;
+			saveToBowerJsonDep = function (data, alias) {
 				return  Q.Promise(function (resolve, reject) {
-					if (fileBwStats && fileBwStats.isFile()) {
-						fs.writeFile(bowerPath, JSON.stringify(bowerJson, null, 4), function(err) {
-						    if(err) {
-						      reject(err);
-						    } else {
-						      resolve();
-						    }
-						});
+					if (grunt.file.exists(bowerPath)) {
+                        if (alias === 'initial') {
+                            grunt.file.write(bowerPath, cacheRead('initial'));
+                        } else {
+                            var json = grunt.file.readJSON(bowerPath),
+                                str;
+                            json.dependencies = data;
+                            str = JSON.stringify(json);
+                            grunt.log.debug(str);
+                            grunt.file.write(bowerPath, str);
+                        }
+                        resolve();
 					} else {
 						setTimeout(function () {
 							resolve();
+                            grunt.fail.fatal('bower.json file is not exist');
 						});
 					}
 				});
@@ -68,6 +75,7 @@ module.exports = function (bowerPath) {
 						newDeps[alias] = deps[alias];
 					}
 				}
+                return metadata;
 			},
 			removeMetadaDir = function () {
 				return Q.Promise(function (resolve, reject) {
@@ -124,18 +132,18 @@ module.exports = function (bowerPath) {
 					bower.commands
 					.install([], {save: false, force: !!force})
 					.on('end', function (installed) {
+                        grunt.log.debug(installed);
 						resolve();
 					})
 					.on('error', function () {
+                        grunt.log.debug('eee');
 						reject(new Error('Package no found!!'));
 					});
 				});
 			},
 			removeBowerPathSync = function () {
-				var path = 'bower_components';
-				if (fs.existsSync(path)) {
-					rmdirSyncForce(path);
-				}
+				var path = './bower_components';
+                grunt.file.exists(path) && grunt.file.delete(path);
 			},
 			readVesrsions = function () {
 				return Q.Promise(function (resolve, reject) {
@@ -159,35 +167,40 @@ module.exports = function (bowerPath) {
 				}
 			},
 			exitWithError = function (reason) {
+                grunt.log.debug('exit with error');
 				if (reason) {
-					console.error(reason);
-					saveToBowerJsonDep(initialDeps);
+					grunt.log.errorlns(reason);
 				}
+                grunt.file.write(bowerPath, cacheRead('initial'));
 				return Q.reject();
 			};
+    // RUN BLOCK
+    cacheJson('initial', grunt.file.read(bowerPath), true);
 	// remove bower_components path
 	removeBowerPathSync();
 	// find metadata xml url by depency urls
-	findMetadataRequestDeps(deps);
-	console.info('Resolve versions from Metadata.xml:');
-	console.info( metadata );
+//	findMetadataRequestDeps(deps);
+    cacheJson('metadata', findMetadataRequestDeps(deps));
+//	console.info('Resolve versions from Metadata.xml:');
 	for (var a in metadata) {
-		console.log(a+' - '+metadata[a]);
+		grunt.log.writeln(a+' - '+metadata[a]);
 	}
 	saveToBowerJsonDep(metadata).then(function () {
 		// upload all metadata xml files
+        grunt.log.debug('try to upload metadata.xml using bower.install');
 		return bowerInstall(true);
 	}, exitWithError )
 	.then(function () {
 		// read last versions from .xml files
+        grunt.log.debug('try to extract vesrions from metadata.xml');
 		return readVesrsions();
 	}, exitWithError)
 	.then(function (verAliases) {
 		// replace ~last~ to real version
 		updateDependenciesVersions(verAliases);
-		console.info('Upload dependencies from:');
+		grunt.log.debug('Upload dependencies from:');
 		for (var al in newDeps) {
-			console.log(al+' - '+newDeps[al]);
+			grunt.log.writeln(al+' - '+newDeps[al]);
 		}
 		// save
 		return saveToBowerJsonDep(newDeps);
@@ -197,13 +210,14 @@ module.exports = function (bowerPath) {
 		return bowerInstall();
 	}, exitWithError)
 	.then(function () {
-		return saveToBowerJsonDep(deps);
+		return saveToBowerJsonDep(deps, 'initial');
 	}, exitWithError)
 	.then(function (){
 		return unjar();
 	}, exitWithError)
 	.then(function () {
-		console.log("All Done!!");
+		grunt.log.oklns("All Done!!");
+        callback();
 	}, exitWithError);
 
 };
