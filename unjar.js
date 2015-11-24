@@ -10,6 +10,7 @@ module.exports = function () {
 
 	return Q.Promise(function (resolveMain, rejectMain) {
 		fs.readdir('bower_components', function (err, folders){
+            if (!folders) return;
 			var promises = [];
 			folders.forEach(function (folder) {
 				promises.push(Q.Promise(function (resolve, reject){
